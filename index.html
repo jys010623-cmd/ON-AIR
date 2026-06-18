@@ -2,8 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Aria — 기기별 음악 플레이어</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>ON-AIR — 기기별 음악 플레이어</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0a0a0a" />
+<meta name="description" content="ON-AIR · 기기별 음악 플레이어 웹앱" />
+<link rel="icon" href="favicon-64.png" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="ON-AIR" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -262,7 +271,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="brand"><div class="logo">A</div><div><h1>Aria</h1><p>기기별 음악 플레이어</p></div></div>
+    <div class="brand"><div class="logo"><span style="color:#e53935;font-size:13px;line-height:1">●</span></div><div><h1>ON-AIR</h1><p>기기별 음악 플레이어</p></div></div>
     <div class="htools">
       <select id="sleep" onchange="setSleep(this.value)" title="슬립 타이머">
         <option value="0">슬립 타이머</option><option value="15">15분</option><option value="30">30분</option><option value="60">60분</option>
@@ -351,14 +360,7 @@
 
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
-var DEMO=[
-  {id:"bM7SZ5SBzyY",title:"Fade",artist:"Alan Walker · NCS",tags:["신나는","드라이브"]},
-  {id:"K4DyBUG242c",title:"On & On (feat. Daniel Levi)",artist:"Cartoon · NCS",tags:["신나는","밝은"]},
-  {id:"J2X5mJ3HDYE",title:"Invincible",artist:"DEAF KEV · NCS",tags:["운동","강렬한"]},
-  {id:"jK2aIUmmdP4",title:"My Heart",artist:"Different Heaven & EH!DE · NCS",tags:["감성","몽환"]},
-  {id:"TW9d8vYrVFQ",title:"Sky High",artist:"Elektronomia · NCS",tags:["신나는","드라이브"]},
-  {id:"EP625xQIGzs",title:"Hope",artist:"Tobu · NCS",tags:["잔잔한","집중","밝은"]}
-];
+var DEMO=[];
 var MOOD_QUERY=[
   {k:/잔잔|로파이|lofi|차분|휴식|편안/,q:"lofi chill beats",t:"잔잔한"},
   {k:/집중|공부|작업|focus/,q:"focus study music",t:"집중"},
@@ -455,7 +457,7 @@ function applySkin(){
         '<div class="sc-arm" onclick="armToggle()" title="톤암을 클릭해 재생/정지"></div>'+
         '<div class="sc-knobs"><div class="sc-knob"></div><div class="sc-knob"></div><div class="sc-knob"></div><div class="sc-dial"></div><div class="sc-led"></div></div>'+
       '</div>'+
-      '<div class="sc-grille"><span class="sc-logo">Aria</span></div>'+
+      '<div class="sc-grille"><span class="sc-logo">ON-AIR</span></div>'+
     '</div>';
   } else if(skin==='cassette'){
     d.innerHTML='<div class="cass"><div class="cass-label"><span>'+esc(curTitle())+'</span></div>'+
@@ -619,7 +621,14 @@ document.addEventListener('keydown',function(e){
 });
 
 load(); renderSkinChips(); applySkin(); render();
-bubble("안녕하세요, Aria예요 🎧 위에서 기기를 골라보세요. LP·CD는 돌아가고 아이팟 클릭휠은 진짜로 작동해요. 분위기를 말하면 DJ가 셋을 짜드려요!","bot");
+bubble("안녕하세요, ON-AIR예요 🎧 위에서 기기를 골라보세요. LP·CD는 돌아가고 아이팟 클릭휠은 진짜로 작동해요. 분위기를 말하면 DJ가 셋을 짜드려요!","bot");
+
+/* ---------- PWA: 서비스워커 등록 ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
 </script>
 </body>
 </html>
