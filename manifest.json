@@ -1,8 +1,11 @@
 {
+  "id": "/ON-AIR/",
   "name": "ON-AIR — 기기별 음악 플레이어",
   "short_name": "ON-AIR",
   "description": "유튜브 기반 음악 플레이어 웹앱. LP·CD·아이팟 등 기기 스킨과 AI DJ 추천.",
   "lang": "ko",
+  "dir": "ltr",
+  "categories": ["music", "entertainment"],
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,17 +13,9 @@
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

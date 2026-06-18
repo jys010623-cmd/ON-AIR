@@ -1,8 +1,11 @@
 /* ON-AIR 서비스워커 — 페이지는 네트워크 우선, 아이콘 등은 캐시 우선 */
-var CACHE = 'onair-v2';
+var CACHE = 'onair-v3';
 var ASSETS = [
   './',
   'index.html',
+  'privacy.html',
+  'terms.html',
+  'licenses.html',
   'manifest.json',
   'icon-192.png',
   'icon-512.png',
@@ -34,13 +37,15 @@ self.addEventListener('fetch', function (e) {
 
   var isPage = req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html');
   if (isPage) {
-    // 페이지: 항상 최신 우선, 오프라인일 때만 캐시
+    // 페이지: 항상 최신 우선, 오프라인일 때만 캐시(해당 페이지 → 없으면 index)
     e.respondWith(
       fetch(req).then(function (resp) {
         var copy = resp.clone();
-        caches.open(CACHE).then(function (c) { c.put('index.html', copy); });
+        caches.open(CACHE).then(function (c) { c.put(req, copy); });
         return resp;
-      }).catch(function () { return caches.match('index.html'); })
+      }).catch(function () {
+        return caches.match(req).then(function (r) { return r || caches.match('index.html'); });
+      })
     );
     return;
   }
