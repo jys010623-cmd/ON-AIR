@@ -818,7 +818,12 @@ function resetAll(){
     ["aria_fav","aria_pl","aria_recent","onair_saved","aria_key","aria_vol","aria_skin","aria_dark","onair_cleaned","onair_chatmin","onair_chatfloat","onair_chatlock","onair_chatx","onair_chaty"].forEach(function(k){ localStorage.removeItem(k); });
   }catch(e){}
   if(ready){ try{ player.stopVideo(); }catch(e){} }
-  location.reload();
+  var done=function(){ location.reload(true); };
+  try{
+    if(window.caches && caches.keys){
+      caches.keys().then(function(ks){ return Promise.all(ks.map(function(k){ return caches.delete(k); })); }).then(done, done);
+    } else { done(); }
+  }catch(e){ done(); }
 }
 
 /* ---------- 채팅 ---------- */
@@ -897,10 +902,16 @@ bubble("안녕하세요, ON-AIR예요 🎧 위에서 기기를 골라보세요. 
 window.addEventListener('error',function(e){ try{ console.error('[ON-AIR] error:', e.message, (e.filename||'')+':'+(e.lineno||'')); }catch(_){} });
 window.addEventListener('unhandledrejection',function(e){ try{ console.error('[ON-AIR] unhandled rejection:', e.reason); }catch(_){} });
 
-/* ---------- PWA: 서비스워커 등록 ---------- */
+/* ---------- PWA: 서비스워커 등록 (자동 업데이트) ---------- */
 if('serviceWorker' in navigator){
+  var _swReloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){ if(_swReloaded)return; _swReloaded=true; location.reload(); });
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    // updateViaCache:'none' → sw.js를 HTTP 캐시 없이 항상 새로 확인해 업데이트가 바로 반영됨
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(reg){
+      reg.addEventListener('updatefound',function(){ var nw=reg.installing; if(nw){ nw.addEventListener('statechange',function(){ /* 새 버전 설치되면 controllerchange에서 자동 새로고침 */ }); } });
+      try{ reg.update(); }catch(e){}
+    }).catch(function(){});
   });
 }
 </script>
