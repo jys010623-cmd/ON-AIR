@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.youtube.com https://s.ytimg.com https://www.youtube-nocookie.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; img-src 'self' data: https://i.ytimg.com https://*.ytimg.com https://yt3.ggpht.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://www.googleapis.com https://api.lyrics.ovh https://www.youtube.com https://youtube.com https://*.ytimg.com; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>ON-AIR — 기기별 음악 플레이어</title>
 <link rel="manifest" href="manifest.json" />
@@ -268,6 +269,7 @@
   .empty{padding:26px 16px; text-align:center; color:var(--faint); font-size:13px;}
   .row{display:flex; align-items:center; gap:11px; padding:10px 13px; cursor:pointer; border-bottom:1px solid var(--border);}
   .row:last-child{border-bottom:none;} .row:hover{background:var(--hover);} .row.active{background:var(--active);}
+  .row[draggable="true"]{cursor:grab;} .row.dragging{opacity:.45;} .row.dragover{box-shadow:inset 0 2px 0 var(--accent);}
   .row img.thumb{width:42px; height:42px; border-radius:7px; object-fit:cover; background:var(--border); flex-shrink:0;}
   .row .meta{min-width:0; flex:1;}
   .row .meta .t{font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -348,6 +350,7 @@
       </select>
       <button onclick="toggleDark()" title="다크 모드" aria-label="다크 모드 전환"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36A5.5 5.5 0 0112 3z"/></svg></button>
       <button onclick="openKey()" title="검색 키" aria-label="유튜브 검색 키 설정">검색 설정</button>
+      <button onclick="openBackup()" title="백업/복원" aria-label="백업 및 복원">백업</button>
       <button onclick="resetAll()" title="전체 초기화" aria-label="전체 초기화">초기화</button>
     </div>
   </header>
@@ -457,6 +460,19 @@
   </div>
 </div>
 
+<div class="modal-bg" id="backupModal">
+  <div class="modal">
+    <h3>백업 / 복원</h3>
+    <p>즐겨찾기·보관함·내 플레이리스트·최근 기록을 JSON 파일로 내보내거나, 백업 파일에서 가져옵니다. 다른 기기·브라우저로 옮길 때 쓰세요. <strong>가져오면 현재 데이터를 덮어씁니다.</strong></p>
+    <div class="actions">
+      <button onclick="closeBackup()">닫기</button>
+      <button onclick="document.getElementById('importFile').click()">가져오기</button>
+      <button class="primary" onclick="exportData()">내보내기</button>
+    </div>
+    <input id="importFile" type="file" accept="application/json,.json" style="display:none" onchange="importData(this)" />
+  </div>
+</div>
+
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 var DEMO=[];
@@ -479,7 +495,7 @@ var SKINS=[
 
 var player,ready=false,queue=DEMO.slice(),idx=-1,playing=false,apiKey="";
 var poll,sleepT,fadeT,targetVol=80,shuffle=false,repeat="off",tab="queue",skin="modern";
-var fav=[],playlists={},recent=[],saved=[],errCount=0,chatMin=false,chatFloat=false,chatLocked=false,chatX=null,chatY=null,_cdrag=false,_cdx=0,_cdy=0,chatLogH=null;
+var fav=[],playlists={},recent=[],saved=[],errCount=0,chatMin=false,chatFloat=false,chatLocked=false,chatX=null,chatY=null,_cdrag=false,_cdx=0,_cdy=0,chatLogH=null,_dragI=-1;
 
 function load(){
   try{
@@ -487,6 +503,7 @@ function load(){
     playlists=JSON.parse(localStorage.getItem("aria_pl")||"{}");
     recent=JSON.parse(localStorage.getItem("aria_recent")||"[]");
     saved=JSON.parse(localStorage.getItem("onair_saved")||"[]");
+    var sq=JSON.parse(localStorage.getItem("onair_queue")||"[]"); if(Array.isArray(sq)) queue=sq;
     chatFloat=localStorage.getItem("onair_chatfloat")==="1";
     chatLocked=localStorage.getItem("onair_chatlock")==="1";
     chatMin=localStorage.getItem("onair_chatmin")==="1";
@@ -519,6 +536,7 @@ function save(){
     localStorage.setItem("aria_pl",JSON.stringify(playlists));
     localStorage.setItem("aria_recent",JSON.stringify(recent));
     localStorage.setItem("onair_saved",JSON.stringify(saved));
+    localStorage.setItem("onair_queue",JSON.stringify(queue));
     localStorage.setItem("aria_key",apiKey);
     localStorage.setItem("aria_vol",String(targetVol));
     localStorage.setItem("aria_skin",skin);
@@ -529,11 +547,11 @@ function save(){
 function onYouTubeIframeAPIReady(){
   player=new YT.Player('yt',{height:'100%',width:'100%',videoId:'',
     playerVars:{rel:0,modestbranding:1,playsinline:1,origin:location.origin},
-    events:{'onReady':function(){ready=true;},'onStateChange':onState,'onError':onError}});
+    events:{'onReady':function(){ready=true; initMediaSession();},'onStateChange':onState,'onError':onError}});
 }
 function onState(e){
-  if(e.data===YT.PlayerState.PLAYING){ errCount=0; hideStageError(); playing=true; setPlayIcon(true); startPoll(); fadeIn(); setSpin(true); }
-  else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPlayIcon(false); setSpin(false); clearInterval(poll); }
+  if(e.data===YT.PlayerState.PLAYING){ errCount=0; hideStageError(); playing=true; setPlayIcon(true); startPoll(); fadeIn(); setSpin(true); if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing'; }
+  else if(e.data===YT.PlayerState.PAUSED){ playing=false; setPlayIcon(false); setSpin(false); clearInterval(poll); if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused'; }
   else if(e.data===YT.PlayerState.ENDED){ clearInterval(poll); if(repeat==="one"){play(idx);} else next(true); }
 }
 /* 임베드 제한·삭제 등으로 재생 불가한 곡 처리: 다음 곡 자동 시도, 더 없으면 '유튜브에서 보기' 안내 */
@@ -548,6 +566,32 @@ function onError(e){
   }
   bubble("이 곡은 임베드가 막혀 있어 다음 곡으로 넘어갈게요 ⏭","bot");
   next(true);
+}
+/* ---------- 미디어 세션 (미디어키·잠금화면·알림 연동) ---------- */
+function initMediaSession(){
+  if(!('mediaSession' in navigator)) return;
+  var ms=navigator.mediaSession;
+  try{
+    ms.setActionHandler('play', function(){ if(idx<0){ togglePlay(); } else if(ready){ player.playVideo(); } });
+    ms.setActionHandler('pause', function(){ if(ready)player.pauseVideo(); });
+    ms.setActionHandler('previoustrack', function(){ prev(); });
+    ms.setActionHandler('nexttrack', function(){ next(); });
+    ms.setActionHandler('seekto', function(d){ if(ready&&d&&d.seekTime!=null)player.seekTo(d.seekTime,true); });
+  }catch(e){}
+}
+function updateMediaSession(){
+  if(!('mediaSession' in navigator)||idx<0) return;
+  var t=queue[idx], id=t.id;
+  try{
+    navigator.mediaSession.metadata=new MediaMetadata({
+      title:t.title||'ON-AIR', artist:t.artist||'', album:'ON-AIR',
+      artwork:[
+        {src:'https://i.ytimg.com/vi/'+id+'/mqdefault.jpg', sizes:'320x180', type:'image/jpeg'},
+        {src:'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg', sizes:'480x360', type:'image/jpeg'},
+        {src:'https://i.ytimg.com/vi/'+id+'/maxresdefault.jpg', sizes:'1280x720', type:'image/jpeg'}
+      ]
+    });
+  }catch(e){}
 }
 function showStageError(id){
   var box=document.getElementById('stageError'); if(!box) return;
@@ -652,7 +696,7 @@ function play(i){
   player.loadVideoById(t.id);
   document.getElementById('npTitle').textContent=t.title;
   document.getElementById('npArtist').textContent=t.artist||"";
-  pushRecent(t); refreshFavBtn(); render(); applySkin();
+  pushRecent(t); refreshFavBtn(); render(); applySkin(); updateMediaSession();
   if(document.getElementById('lyrics').classList.contains('show')) loadLyrics(t);
 }
 function togglePlay(){ if(!ready)return; if(idx<0){ if(!queue.length){bubble("재생할 곡이 없어요. 유튜브 링크를 붙여넣거나 곡을 검색해 주세요.","bot");return;} play(0);bubble("“"+queue[0].title+"” 재생할게요","bot");return;} if(playing)player.pauseVideo();else player.playVideo(); }
@@ -704,8 +748,24 @@ function render(){
     row.querySelector('[data-fav]').onclick=function(ev){ ev.stopPropagation(); favFromData(data,i); };
     row.querySelector('[data-add]').onclick=function(ev){ ev.stopPropagation(); addToPlaylist(data,i); };
     var delB=row.querySelector('[data-del]'); if(delB) delB.onclick=function(ev){ ev.stopPropagation(); removeFromData(data,i); };
+    if(tab==="queue"){
+      row.draggable=true;
+      row.addEventListener('dragstart',function(e){ _dragI=i; row.classList.add('dragging'); try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',String(i)); }catch(_){} });
+      row.addEventListener('dragend',function(){ _dragI=-1; row.classList.remove('dragging'); });
+      row.addEventListener('dragover',function(e){ e.preventDefault(); if(e.dataTransfer)e.dataTransfer.dropEffect='move'; row.classList.add('dragover'); });
+      row.addEventListener('dragleave',function(){ row.classList.remove('dragover'); });
+      row.addEventListener('drop',function(e){ e.preventDefault(); row.classList.remove('dragover'); reorderQueue(_dragI,i); });
+    }
     el.appendChild(row);
   });
+}
+function reorderQueue(from,to){
+  if(from===to||from<0||to<0||from>=queue.length||to>=queue.length) return;
+  var moved=queue.splice(from,1)[0]; queue.splice(to,0,moved);
+  if(idx===from) idx=to;
+  else if(from<idx && to>=idx) idx--;
+  else if(from>idx && to<=idx) idx++;
+  save(); render();
 }
 function renderPlaylists(el){
   var names=Object.keys(playlists);
@@ -780,7 +840,7 @@ function renderSaved(el){
   });
 }
 function playSaved(i){ queue=saved.map(function(t){return {id:t.id,title:t.title,artist:t.artist};}); idx=-1; switchTab('queue'); play(i); bubble("보관함에서 “"+saved[i].title+"” 재생할게요 ▶","bot"); }
-function queueSaved(i){ var t=saved[i]; if(!queue.some(function(x){return x.id===t.id;})) queue.push({id:t.id,title:t.title,artist:t.artist}); bubble("재생목록에 추가했어요","bot"); if(tab==="queue")render(); }
+function queueSaved(i){ var t=saved[i]; if(!queue.some(function(x){return x.id===t.id;})) queue.push({id:t.id,title:t.title,artist:t.artist}); save(); bubble("재생목록에 추가했어요","bot"); if(tab==="queue")render(); }
 
 /* ---------- 검색/AI DJ ---------- */
 function extractId(s){ var m=s.match(/(?:v=|youtu\.be\/|\/embed\/|\/shorts\/)([\w-]{11})/); if(m)return m[1]; if(/^[\w-]{11}$/.test(s.trim()))return s.trim(); return null; }
@@ -809,6 +869,39 @@ function loadLyrics(t){ var artist=(t.artist||"").split("·")[0].replace(/NCS|Of
 function openKey(){ document.getElementById('keyModal').classList.add('show'); document.getElementById('keyInput').value=apiKey; }
 function closeKey(){ document.getElementById('keyModal').classList.remove('show'); }
 function saveKey(){ apiKey=document.getElementById('keyInput').value.trim(); save(); closeKey(); bubble(apiKey?"검색 키를 저장했어요!":"키를 비웠어요.","bot"); }
+/* ---------- 백업/복원 ---------- */
+function openBackup(){ document.getElementById('backupModal').classList.add('show'); }
+function closeBackup(){ document.getElementById('backupModal').classList.remove('show'); }
+function exportData(){
+  try{
+    var data={app:"ON-AIR", v:1, exportedAt:new Date().toISOString(), fav:fav, playlists:playlists, saved:saved, recent:recent};
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download="onair-backup-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    bubble("백업 파일을 내보냈어요 💾","bot");
+  }catch(e){ alert("내보내기에 실패했어요."); }
+}
+function importData(input){
+  var f=input.files && input.files[0]; if(!f){ return; }
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var d=JSON.parse(rd.result);
+      if(!d || (d.fav===undefined && d.playlists===undefined && d.saved===undefined && d.recent===undefined)) throw 0;
+      if(!confirm("현재 즐겨찾기·보관함·플레이리스트·최근 기록을 백업 내용으로 덮어쓸까요?")){ input.value=""; return; }
+      if(Array.isArray(d.fav)) fav=d.fav;
+      if(Array.isArray(d.saved)) saved=d.saved;
+      if(Array.isArray(d.recent)) recent=d.recent;
+      if(d.playlists && typeof d.playlists==="object" && !Array.isArray(d.playlists)) playlists=d.playlists;
+      save(); refreshFavBtn(); render(); closeBackup();
+      bubble("백업을 불러왔어요 ✅","bot");
+    }catch(e){ alert("가져오기 실패: 올바른 ON-AIR 백업 파일이 아니에요."); }
+    input.value="";
+  };
+  rd.readAsText(f);
+}
 function toggleDark(){ document.body.classList.toggle('dark'); save(); if(skin!=='modern')applySkin(); }
 function setSleep(min){ clearTimeout(sleepT); min=parseInt(min); if(min>0){ sleepT=setTimeout(function(){if(ready)player.pauseVideo();bubble("슬립 타이머: 멈췄어요 😴","bot");document.getElementById('sleep').value="0";},min*60000); bubble(min+"분 뒤 자동으로 멈출게요 ⏰","bot"); } }
 
@@ -816,7 +909,7 @@ function setSleep(min){ clearTimeout(sleepT); min=parseInt(min); if(min>0){ slee
 function resetAll(){
   if(!confirm("정말 전체 초기화할까요?\n보관함·즐겨찾기·내 플레이리스트·최근 기록·스킨·다크모드·볼륨·검색 키가 모두 지워지고 처음 상태로 돌아갑니다.")) return;
   try{
-    ["aria_fav","aria_pl","aria_recent","onair_saved","aria_key","aria_vol","aria_skin","aria_dark","onair_cleaned","onair_chatmin","onair_chatfloat","onair_chatlock","onair_chatx","onair_chaty","onair_chatlogh"].forEach(function(k){ localStorage.removeItem(k); });
+    ["aria_fav","aria_pl","aria_recent","onair_saved","aria_key","aria_vol","aria_skin","aria_dark","onair_cleaned","onair_chatmin","onair_chatfloat","onair_chatlock","onair_chatx","onair_chaty","onair_chatlogh","onair_queue"].forEach(function(k){ localStorage.removeItem(k); });
   }catch(e){}
   if(ready){ try{ player.stopVideo(); }catch(e){} }
   var done=function(){ location.reload(true); };
