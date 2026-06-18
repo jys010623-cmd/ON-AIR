@@ -314,6 +314,17 @@
   .modal .actions{display:flex; gap:8px; justify-content:flex-end;}
   .modal button{height:38px; padding:0 16px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; border:1px solid var(--border); background:var(--surface); color:var(--text);}
   .modal button.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent);}
+  .modal{max-height:88vh; overflow-y:auto;}
+  .help-btn{width:21px; height:21px; padding:0; border-radius:50%; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:12px; font-weight:600; line-height:1; cursor:pointer; vertical-align:middle;}
+  .help-btn:hover{background:var(--hover);}
+  .key-help{display:none; background:var(--hover); border:1px solid var(--border); border-radius:9px; padding:13px 15px; margin-bottom:14px;}
+  .key-help.show{display:block;}
+  .key-help .kh-title{font-size:13px; font-weight:600; margin-bottom:8px;}
+  .key-help ol{margin:0; padding-left:20px;}
+  .key-help li{font-size:12.5px; color:var(--text); line-height:1.75; margin-bottom:6px;}
+  .key-help a{color:var(--text);}
+  .key-help code{background:var(--surface); border:1px solid var(--border); padding:1px 5px; border-radius:4px; font-size:11.5px;}
+  .key-help .note{font-size:11.5px; color:var(--faint); line-height:1.6; margin-top:8px;}
 
   /* 푸터 / 법적 고지 */
   footer.site{margin-top:26px; padding-top:16px; border-top:1px solid var(--border); text-align:center;}
@@ -452,9 +463,21 @@
 
 <div class="modal-bg" id="keyModal">
   <div class="modal">
-    <h3>유튜브 검색 키 설정</h3>
+    <h3>유튜브 검색 키 설정 <button class="help-btn" id="keyHelpBtn" onclick="toggleKeyHelp()" title="키 발급 방법" aria-label="키 발급 방법 보기" aria-expanded="false">?</button></h3>
     <p>키워드 검색·AI DJ 추천에 무료 YouTube Data API 키가 필요해요.
-       <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">발급 페이지 열기</a> · 키 없이도 유튜브 링크를 붙여넣으면 바로 재생됩니다. (키 도용 방지를 위해 Google Cloud에서 HTTP 리퍼러 제한을 걸어두는 것을 권장해요.)</p>
+       <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer">발급 페이지 열기</a> · 키 없이도 유튜브 링크를 붙여넣으면 바로 재생됩니다. 오른쪽 위 <b>?</b> 를 누르면 발급 방법을 볼 수 있어요.</p>
+    <div class="key-help" id="keyHelp">
+      <div class="kh-title">🔑 API 키 발급 방법 (무료)</div>
+      <ol>
+        <li><a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">Google Cloud Console</a>에 접속해 구글 계정으로 로그인해요.</li>
+        <li>상단 프로젝트 선택 → <b>새 프로젝트</b> → 이름 입력 후 <b>만들기</b>.</li>
+        <li>왼쪽 메뉴 <b>API 및 서비스 → 라이브러리</b>에서 <b>YouTube Data API v3</b>를 검색해 <b>사용 설정</b>을 눌러요.</li>
+        <li><b>API 및 서비스 → 사용자 인증 정보</b> → <b>+ 사용자 인증 정보 만들기 → API 키</b>를 누르면 <b>AIza…</b> 형태의 키가 생성돼요.</li>
+        <li>(권장) 만든 키의 <b>키 수정</b>에서 — 애플리케이션 제한: <b>HTTP 리퍼러</b>에 <code>jys010623-cmd.github.io/*</code> 추가, API 제한: <b>YouTube Data API v3</b>만 선택. 키 도용을 막아줘요.</li>
+        <li>생성된 키를 복사해 아래 칸에 붙여넣고 <b>저장</b>!</li>
+      </ol>
+      <div class="note">무료 할당량은 하루 약 100회 검색 정도예요. 키는 다른 곳으로 전송되지 않고 이 브라우저에만 저장됩니다. (콘솔 화면 문구는 시기에 따라 조금 다를 수 있어요.)</div>
+    </div>
     <input id="keyInput" type="text" placeholder="AIza... 형태의 API 키" />
     <div class="actions"><button onclick="closeKey()">닫기</button><button class="primary" onclick="saveKey()">저장</button></div>
   </div>
@@ -868,6 +891,7 @@ function loadLyrics(t){ var artist=(t.artist||"").split("·")[0].replace(/NCS|Of
 /* ---------- 모달/다크/슬립 ---------- */
 function openKey(){ document.getElementById('keyModal').classList.add('show'); document.getElementById('keyInput').value=apiKey; }
 function closeKey(){ document.getElementById('keyModal').classList.remove('show'); }
+function toggleKeyHelp(){ var h=document.getElementById('keyHelp'); var on=h.classList.toggle('show'); var b=document.getElementById('keyHelpBtn'); if(b)b.setAttribute('aria-expanded',on?'true':'false'); }
 function saveKey(){ apiKey=document.getElementById('keyInput').value.trim(); save(); closeKey(); bubble(apiKey?"검색 키를 저장했어요!":"키를 비웠어요.","bot"); }
 /* ---------- 백업/복원 ---------- */
 function openBackup(){ document.getElementById('backupModal').classList.add('show'); }
