@@ -502,8 +502,7 @@ function save(){
 
 function onYouTubeIframeAPIReady(){
   player=new YT.Player('yt',{height:'100%',width:'100%',videoId:'',
-    host:'https://www.youtube-nocookie.com',
-    playerVars:{rel:0,modestbranding:1,playsinline:1},
+    playerVars:{rel:0,modestbranding:1,playsinline:1,origin:location.origin},
     events:{'onReady':function(){ready=true;},'onStateChange':onState,'onError':onError}});
 }
 function onState(e){
