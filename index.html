@@ -277,7 +277,7 @@
   .row .mini:hover{background:var(--accent); color:var(--accent-fg); border-color:var(--accent);} .row .mini.on{color:var(--accent); border-color:var(--accent);} .row .mini svg{width:14px; height:14px;}
 
   .chat{border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; background:var(--surface);}
-  .chat .log{height:130px; overflow-y:auto; padding:13px; display:flex; flex-direction:column; gap:8px; background:var(--hover);}
+  .chat .log{height:130px; min-height:130px; max-height:65vh; resize:vertical; overflow-y:auto; padding:13px; display:flex; flex-direction:column; gap:8px; background:var(--hover);}
   .msg{max-width:82%; padding:7px 12px; border-radius:11px; font-size:13px; line-height:1.5;}
   .msg.bot{align-self:flex-start; background:var(--surface); border:1px solid var(--border);}
   .msg.me{align-self:flex-end; background:var(--accent); color:var(--accent-fg);}
@@ -479,7 +479,7 @@ var SKINS=[
 
 var player,ready=false,queue=DEMO.slice(),idx=-1,playing=false,apiKey="";
 var poll,sleepT,fadeT,targetVol=80,shuffle=false,repeat="off",tab="queue",skin="modern";
-var fav=[],playlists={},recent=[],saved=[],errCount=0,chatMin=false,chatFloat=false,chatLocked=false,chatX=null,chatY=null,_cdrag=false,_cdx=0,_cdy=0;
+var fav=[],playlists={},recent=[],saved=[],errCount=0,chatMin=false,chatFloat=false,chatLocked=false,chatX=null,chatY=null,_cdrag=false,_cdx=0,_cdy=0,chatLogH=null;
 
 function load(){
   try{
@@ -492,6 +492,7 @@ function load(){
     chatMin=localStorage.getItem("onair_chatmin")==="1";
     chatX=parseFloat(localStorage.getItem("onair_chatx")); if(isNaN(chatX))chatX=null;
     chatY=parseFloat(localStorage.getItem("onair_chaty")); if(isNaN(chatY))chatY=null;
+    chatLogH=parseFloat(localStorage.getItem("onair_chatlogh")); if(isNaN(chatLogH))chatLogH=null;
     apiKey=localStorage.getItem("aria_key")||"";
     targetVol=parseInt(localStorage.getItem("aria_vol")||"80");
     skin=localStorage.getItem("aria_skin")||"modern";
@@ -815,7 +816,7 @@ function setSleep(min){ clearTimeout(sleepT); min=parseInt(min); if(min>0){ slee
 function resetAll(){
   if(!confirm("정말 전체 초기화할까요?\n보관함·즐겨찾기·내 플레이리스트·최근 기록·스킨·다크모드·볼륨·검색 키가 모두 지워지고 처음 상태로 돌아갑니다.")) return;
   try{
-    ["aria_fav","aria_pl","aria_recent","onair_saved","aria_key","aria_vol","aria_skin","aria_dark","onair_cleaned","onair_chatmin","onair_chatfloat","onair_chatlock","onair_chatx","onair_chaty"].forEach(function(k){ localStorage.removeItem(k); });
+    ["aria_fav","aria_pl","aria_recent","onair_saved","aria_key","aria_vol","aria_skin","aria_dark","onair_cleaned","onair_chatmin","onair_chatfloat","onair_chatlock","onair_chatx","onair_chaty","onair_chatlogh"].forEach(function(k){ localStorage.removeItem(k); });
   }catch(e){}
   if(ready){ try{ player.stopVideo(); }catch(e){} }
   var done=function(){ location.reload(true); };
@@ -868,6 +869,21 @@ function chatDragMove(e){
 }
 function chatDragEnd(){ if(!_cdrag) return; _cdrag=false; saveChatXY(); document.removeEventListener('pointermove',chatDragMove); document.removeEventListener('pointerup',chatDragEnd); }
 window.addEventListener('resize',function(){ if(chatFloat) positionChat(); });
+/* 채팅창 세로 길이: 저장값 적용 + 드래그 리사이즈 저장 */
+function initChatResize(){
+  var lg=document.getElementById('log'); if(!lg) return;
+  if(chatLogH){ lg.style.height=chatLogH+'px'; }
+  if(window.ResizeObserver){
+    var ro=new ResizeObserver(function(){
+      var h=lg.offsetHeight;
+      if(h && Math.round(h)!==Math.round(chatLogH||0)){
+        chatLogH=h; try{ localStorage.setItem("onair_chatlogh",String(Math.round(h))); }catch(e){}
+        if(chatFloat) positionChat();
+      }
+    });
+    ro.observe(lg);
+  }
+}
 function sendCmd(){ var inp=document.getElementById('cmd'); var v=inp.value.trim(); if(!v)return; bubble(v,"me"); inp.value=""; var low=v.toLowerCase();
   setTimeout(function(){
     if(/정지|멈춰|일시|pause|stop/.test(low)){if(ready)player.pauseVideo();bubble("일시정지 ⏸","bot");return;}
@@ -895,7 +911,7 @@ document.addEventListener('keydown',function(e){
   else if(e.key==="f"||e.key==="F"){toggleFav();}
 });
 
-load(); purgeDemo(); renderSkinChips(); applySkin(); render(); applyChatPos();
+load(); purgeDemo(); renderSkinChips(); applySkin(); render(); applyChatPos(); initChatResize();
 bubble("안녕하세요, ON-AIR예요 🎧 위에서 기기를 골라보세요. LP·CD는 돌아가고 아이팟 클릭휠은 진짜로 작동해요. 분위기를 말하면 DJ가 셋을 짜드려요!","bot");
 
 /* ---------- 전역 에러 로깅 ---------- */
