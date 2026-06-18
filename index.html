@@ -288,18 +288,27 @@
   /* 채팅봇 위치 이동 */
   .chatbar{display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--surface);}
   .chatbar .chat-title{font-size:12px; font-weight:600; color:var(--text); margin-right:auto; white-space:nowrap;}
-  .chat-pos{display:flex; gap:4px;}
-  .chat-pos button{font-size:11px; color:var(--muted); background:var(--surface); border:1px solid var(--border); padding:4px 8px; border-radius:7px; cursor:pointer; font-family:inherit; white-space:nowrap;}
-  .chat-pos button:hover{background:var(--hover);}
-  .chat-pos button.active{background:var(--accent); color:var(--accent-fg); border-color:var(--accent);}
+  .chat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:3px; flex-shrink:0;}
+  .chat-grid button{width:16px; height:14px; padding:0; border:1px solid var(--border); background:var(--surface); border-radius:3px; cursor:pointer;}
+  .chat-grid button:hover{background:var(--hover);}
+  .chat-grid button.active{background:var(--accent); border-color:var(--accent);}
+  .chat-grid button.disabled{opacity:.28; cursor:not-allowed;}
+  .chat-grid button.home{position:relative;}
+  .chat-grid button.home::after{content:""; position:absolute; top:50%; left:50%; width:5px; height:5px; transform:translate(-50%,-50%); border-radius:50%; background:var(--faint);}
+  .chat-grid button.home.active::after{background:var(--accent-fg);}
   .chat-min{width:26px; height:26px; flex-shrink:0; border:1px solid var(--border); background:var(--surface); border-radius:7px; cursor:pointer; color:var(--muted); font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center;}
   .chat-min:hover{background:var(--hover);}
   .chat.float{position:fixed; z-index:40; width:340px; max-width:calc(100vw - 28px); box-shadow:0 12px 34px rgba(0,0,0,.18); margin:0;}
-  .chat.pos-left{left:18px; bottom:18px;}
-  .chat.pos-right{right:18px; bottom:18px;}
-  .chat.pos-top{top:14px; left:50%; transform:translateX(-50%);}
+  .chat.pos-tl{top:16px; left:16px;}
+  .chat.pos-tc{top:16px; left:50%; transform:translateX(-50%);}
+  .chat.pos-tr{top:16px; right:16px;}
+  .chat.pos-ml{top:50%; left:16px; transform:translateY(-50%);}
+  .chat.pos-mr{top:50%; right:16px; transform:translateY(-50%);}
+  .chat.pos-bl{bottom:16px; left:16px;}
+  .chat.pos-bc{bottom:16px; left:50%; transform:translateX(-50%);}
+  .chat.pos-br{bottom:16px; right:16px;}
   .chat.collapsed .log, .chat.collapsed .inputbar{display:none;}
-  @media (max-width:640px){ .chat.float{width:calc(100vw - 24px); left:12px; right:12px; transform:none; max-width:none;} .chat.pos-top{left:12px;} }
+  @media (max-width:640px){ .chat.float{width:calc(100vw - 24px); left:12px; right:12px; transform:none; max-width:none;} }
   .hint{font-size:12px; color:var(--faint); text-align:center; margin-top:16px; line-height:1.8;}
   .hint code{background:var(--hover); padding:1px 6px; border-radius:5px; color:var(--muted); font-size:11px;}
   .hint kbd{background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:1px 6px; font-size:11px; font-family:inherit;}
@@ -423,11 +432,16 @@
   <div class="chat" id="chat">
     <div class="chatbar">
       <span class="chat-title">ON-AIR 봇</span>
-      <div class="chat-pos" role="group" aria-label="채팅봇 위치">
-        <button id="cpos-dock" onclick="setChatPos('dock')" title="기본 위치">기본</button>
-        <button id="cpos-left" onclick="setChatPos('left')" title="왼쪽 하단 고정">왼쪽</button>
-        <button id="cpos-right" onclick="setChatPos('right')" title="오른쪽 하단 고정">오른쪽</button>
-        <button id="cpos-top" onclick="setChatPos('top')" title="위쪽 고정">위</button>
+      <div class="chat-grid" role="group" aria-label="채팅봇 위치 선택">
+        <button data-pos="tl" onclick="setChatPos('tl')" title="왼쪽 위" aria-label="왼쪽 위"></button>
+        <button data-pos="tc" onclick="setChatPos('tc')" title="가운데 위" aria-label="가운데 위"></button>
+        <button data-pos="tr" onclick="setChatPos('tr')" title="오른쪽 위" aria-label="오른쪽 위"></button>
+        <button data-pos="ml" onclick="setChatPos('ml')" title="왼쪽 중간" aria-label="왼쪽 중간"></button>
+        <button class="home" data-pos="mc" onclick="setChatPos('mc')" title="기본(원위치)" aria-label="기본 위치"></button>
+        <button data-pos="mr" onclick="setChatPos('mr')" title="오른쪽 중간" aria-label="오른쪽 중간"></button>
+        <button data-pos="bl" onclick="setChatPos('bl')" title="왼쪽 아래" aria-label="왼쪽 아래"></button>
+        <button data-pos="bc" onclick="setChatPos('bc')" title="가운데 아래" aria-label="가운데 아래"></button>
+        <button data-pos="br" onclick="setChatPos('br')" title="오른쪽 아래" aria-label="오른쪽 아래"></button>
       </div>
       <button class="chat-min" id="chatMin" onclick="toggleChatMin()" title="접기/펼치기" aria-label="채팅봇 접기/펼치기">—</button>
     </div>
@@ -483,7 +497,7 @@ var SKINS=[
 
 var player,ready=false,queue=DEMO.slice(),idx=-1,playing=false,apiKey="";
 var poll,sleepT,fadeT,targetVol=80,shuffle=false,repeat="off",tab="queue",skin="modern";
-var fav=[],playlists={},recent=[],saved=[],errCount=0,chatPos="dock",chatMin=false;
+var fav=[],playlists={},recent=[],saved=[],errCount=0,chatPos="mc",chatMin=false;
 
 function load(){
   try{
@@ -491,7 +505,8 @@ function load(){
     playlists=JSON.parse(localStorage.getItem("aria_pl")||"{}");
     recent=JSON.parse(localStorage.getItem("aria_recent")||"[]");
     saved=JSON.parse(localStorage.getItem("onair_saved")||"[]");
-    chatPos=localStorage.getItem("onair_chatpos")||"dock";
+    chatPos=localStorage.getItem("onair_chatpos")||"mc";
+    if(["tl","tc","tr","ml","mc","mr","bl","bc","br"].indexOf(chatPos)<0) chatPos="mc";
     chatMin=localStorage.getItem("onair_chatmin")==="1";
     apiKey=localStorage.getItem("aria_key")||"";
     targetVol=parseInt(localStorage.getItem("aria_vol")||"80");
@@ -825,14 +840,22 @@ function resetAll(){
 /* ---------- 채팅 ---------- */
 function bubble(text,who){ var log=document.getElementById('log'); var d=document.createElement('div'); d.className="msg "+(who==="bot"?"bot":"me"); d.textContent=text; log.appendChild(d); log.scrollTop=log.scrollHeight; }
 /* ---------- 채팅봇 위치 이동 ---------- */
-function setChatPos(p){ chatPos=p; try{ localStorage.setItem("onair_chatpos",p); }catch(e){} applyChatPos(); }
+function chatMobile(){ return window.matchMedia && window.matchMedia("(max-width:640px)").matches; }
+/* 모바일에서는 기본(mc)과 위(tc)만 허용 */
+function chatPosAllowed(p){ return !chatMobile() || p==="mc" || p==="tc"; }
+function effChatPos(){ return chatPosAllowed(chatPos) ? chatPos : "tc"; }
+function setChatPos(p){ if(!chatPosAllowed(p)) return; chatPos=p; try{ localStorage.setItem("onair_chatpos",p); }catch(e){} applyChatPos(); }
 function toggleChatMin(){ chatMin=!chatMin; try{ localStorage.setItem("onair_chatmin",chatMin?"1":"0"); }catch(e){} applyChatPos(); }
 function applyChatPos(){
   var c=document.getElementById('chat'); if(!c) return;
-  c.className='chat'+(chatPos!=='dock'?(' float pos-'+chatPos):'')+(chatMin?' collapsed':'');
+  var pos=effChatPos(), floating=(pos!=='mc');
+  c.className='chat'+(floating?(' float pos-'+pos):'')+(chatMin?' collapsed':'');
   var mn=document.getElementById('chatMin'); if(mn){ mn.textContent=chatMin?'+':'—'; mn.setAttribute('aria-expanded',chatMin?'false':'true'); }
-  ['dock','left','right','top'].forEach(function(p){ var b=document.getElementById('cpos-'+p); if(b) b.classList.toggle('active',p===chatPos); });
+  var cells=document.querySelectorAll('.chat-grid button');
+  for(var i=0;i<cells.length;i++){ var p=cells[i].getAttribute('data-pos'); var ok=chatPosAllowed(p);
+    cells[i].disabled=!ok; cells[i].classList.toggle('disabled',!ok); cells[i].classList.toggle('active',p===pos); }
 }
+if(window.matchMedia){ try{ window.matchMedia("(max-width:640px)").addEventListener('change',applyChatPos); }catch(e){ window.addEventListener('resize',applyChatPos); } }
 function sendCmd(){ var inp=document.getElementById('cmd'); var v=inp.value.trim(); if(!v)return; bubble(v,"me"); inp.value=""; var low=v.toLowerCase();
   setTimeout(function(){
     if(/정지|멈춰|일시|pause|stop/.test(low)){if(ready)player.pauseVideo();bubble("일시정지 ⏸","bot");return;}
