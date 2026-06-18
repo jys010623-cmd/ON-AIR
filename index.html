@@ -361,6 +361,8 @@
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 var DEMO=[];
+/* 예전 데모곡 ID — 저장된 기록(최근·즐겨찾기·플레이리스트)에서 1회 정리용 */
+var DEMO_IDS=["bM7SZ5SBzyY","K4DyBUG242c","J2X5mJ3HDYE","jK2aIUmmdP4","TW9d8vYrVFQ","EP625xQIGzs"];
 var MOOD_QUERY=[
   {k:/잔잔|로파이|lofi|차분|휴식|편안/,q:"lofi chill beats",t:"잔잔한"},
   {k:/집중|공부|작업|focus/,q:"focus study music",t:"집중"},
@@ -391,6 +393,18 @@ function load(){
     if(localStorage.getItem("aria_dark")==="1") document.body.classList.add("dark");
   }catch(e){}
   document.getElementById("volSlider").value=targetVol;
+}
+/* 예전에 재생했던 데모곡을 저장된 기록에서 1회 제거 */
+function purgeDemo(){
+  try{
+    if(localStorage.getItem("onair_cleaned")==="1") return;
+    var keep=function(t){return DEMO_IDS.indexOf(t.id)<0;};
+    fav=fav.filter(keep); recent=recent.filter(keep);
+    Object.keys(playlists).forEach(function(n){ playlists[n]=playlists[n].filter(keep); });
+    queue=queue.filter(keep);
+    localStorage.setItem("onair_cleaned","1");
+    save();
+  }catch(e){}
 }
 function save(){
   try{
@@ -620,7 +634,7 @@ document.addEventListener('keydown',function(e){
   else if(e.key==="f"||e.key==="F"){toggleFav();}
 });
 
-load(); renderSkinChips(); applySkin(); render();
+load(); purgeDemo(); renderSkinChips(); applySkin(); render();
 bubble("안녕하세요, ON-AIR예요 🎧 위에서 기기를 골라보세요. LP·CD는 돌아가고 아이팟 클릭휠은 진짜로 작동해요. 분위기를 말하면 DJ가 셋을 짜드려요!","bot");
 
 /* ---------- PWA: 서비스워커 등록 ---------- */

@@ -1,5 +1,5 @@
-/* ON-AIR 서비스워커 — 앱 셸 캐싱 + 오프라인 폴백 */
-var CACHE = 'onair-v1';
+/* ON-AIR 서비스워커 — 페이지는 네트워크 우선, 아이콘 등은 캐시 우선 */
+var CACHE = 'onair-v2';
 var ASSETS = [
   './',
   'index.html',
@@ -30,17 +30,27 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') { return; }
   var url = new URL(req.url);
-  // 같은 출처(앱 셸)만 캐시 우선 처리. 유튜브·폰트·API 등 외부는 네트워크에 맡김.
-  if (url.origin !== location.origin) { return; }
+  if (url.origin !== location.origin) { return; }  // 유튜브·폰트·API 등은 네트워크에 맡김
+
+  var isPage = req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html');
+  if (isPage) {
+    // 페이지: 항상 최신 우선, 오프라인일 때만 캐시
+    e.respondWith(
+      fetch(req).then(function (resp) {
+        var copy = resp.clone();
+        caches.open(CACHE).then(function (c) { c.put('index.html', copy); });
+        return resp;
+      }).catch(function () { return caches.match('index.html'); })
+    );
+    return;
+  }
+  // 그 외(아이콘·매니페스트): 캐시 우선
   e.respondWith(
     caches.match(req).then(function (cached) {
-      if (cached) { return cached; }
-      return fetch(req).then(function (resp) {
+      return cached || fetch(req).then(function (resp) {
         var copy = resp.clone();
         caches.open(CACHE).then(function (c) { c.put(req, copy); });
         return resp;
-      }).catch(function () {
-        return caches.match('index.html');
       });
     })
   );
