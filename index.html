@@ -703,6 +703,18 @@ function applySkin(){
   }
   setSpin(playing);
   updateCover();
+  fitDeviceArt();
+}
+/* 기기 스킨을 스테이지 크기에 맞춰 비율 그대로 자동 축소 (좁은 화면 잘림 방지) */
+function fitDeviceArt(){
+  if(skin==='modern'||skin==='pmp') return;
+  var d=document.getElementById('deviceArt'); if(!d) return;
+  var el=d.firstElementChild; if(!el) return;
+  el.style.transform=''; el.style.transformOrigin='center center';
+  var availW=d.clientWidth-16, availH=d.clientHeight-16;
+  var w=el.offsetWidth, h=el.offsetHeight; if(!w||!h||availW<=0||availH<=0) return;
+  var s=Math.min(1, availW/w, availH/h);
+  if(s<1) el.style.transform='scale('+s+')';
 }
 /* 모던 스킨에서 재생 곡이 없을 때만 안내 커버 표시 (유튜브 빈 플레이어 오류 가림) */
 function updateCover(){
@@ -985,7 +997,7 @@ function chatDragMove(e){
   c.style.left=chatX+'px'; c.style.top=chatY+'px'; c.style.right='auto'; c.style.bottom='auto';
 }
 function chatDragEnd(){ if(!_cdrag) return; _cdrag=false; saveChatXY(); document.removeEventListener('pointermove',chatDragMove); document.removeEventListener('pointerup',chatDragEnd); }
-window.addEventListener('resize',function(){ if(chatFloat) positionChat(); });
+window.addEventListener('resize',function(){ if(chatFloat) positionChat(); fitDeviceArt(); });
 /* 채팅창 세로 길이: 저장값 적용 + 드래그 리사이즈 저장 */
 function initChatResize(){
   var lg=document.getElementById('log'); if(!lg) return;
